@@ -100,26 +100,40 @@ async def test_cache_ttl():
     assert await cache.get("key1") is None
 
 
+@pytest.fixture
+def clear_cache():
+    client.delete("/cache/key1")
+    client.delete("/cache/key2")
+    client.delete("/cache/key3")
+    client.delete("/cache/key4")
+
+
+@pytest.mark.usefixtures("clear_cache")
 def test_get_item():
-    # Сначала добавим элемент
+    # First, add an element
     response = client.put("/cache/key1", json={"value": "value1", "ttl": 3600})
     assert response.status_code == 201
     
-    # Теперь получим элемент
+    # Now, retrieve the element
     response = client.get("/cache/key1")
     assert response.status_code == 200
     assert response.json() == {"value": "value1"}
 
+
 def test_get_nonexistent_item():
+    # Try to get a non-existent item
     response = client.get("/cache/nonexistent_key")
     assert response.status_code == 404
     assert response.json() == {"detail": "Cache key not found or TTL expired"}
 
+
+@pytest.mark.usefixtures("clear_cache")
 def test_set_item():
+    # Add an element
     response = client.put("/cache/key2", json={"value": "value2", "ttl": 3600})
     assert response.status_code == 201
     
-    # Проверка обновления элемента
+    # Check updating the element
     response = client.put("/cache/key2", json={"value": "new_value2", "ttl": 3600})
     assert response.status_code == 200
     
@@ -127,26 +141,30 @@ def test_set_item():
     assert response.status_code == 200
     assert response.json() == {"value": "new_value2"}
 
+
+@pytest.mark.usefixtures("clear_cache")
 def test_delete_item():
-    # Добавим элемент
+    # Add an element
     response = client.put("/cache/key3", json={"value": "value3", "ttl": 3600})
     assert response.status_code == 201
     
-    # Удалим элемент
+    # Delete the element
     response = client.delete("/cache/key3")
     assert response.status_code == 204
     
-    # Проверим, что элемент удален
+    # Check that the element is deleted
     response = client.get("/cache/key3")
     assert response.status_code == 404
 
+
+@pytest.mark.usefixtures("clear_cache")
 def test_cache_eviction():
-    # Добавим 3 элемента в кэш с лимитом 2
+    # Add 3 elements to the cache with a limit of 2
     client.put("/cache/key1", json={"value": "value1", "ttl": 3600})
     client.put("/cache/key2", json={"value": "value2", "ttl": 3600})
     client.put("/cache/key3", json={"value": "value3", "ttl": 3600})
     
-    # Проверим, что первый элемент был вытеснен
+    # Check that the first element was evicted
     response = client.get("/cache/key1")
     assert response.status_code == 200
     response = client.get("/cache/key2")
@@ -156,30 +174,35 @@ def test_cache_eviction():
     assert response.status_code == 200
     assert response.json() == {"value": "value3"}
 
-# def test_cache_ttl():
-#     # Добавим элемент с TTL = 1 секунда
-#     response = client.put("/cache/key4", json={"value": "value4", "ttl": 1})
-#     assert response.status_code == 201
-    
-#     # Проверим, что элемент существует
-#     response = client.get("/cache/key4")
-#     assert response.status_code == 200
-#     assert response.json() == {"value": "value4"}
-    
-#     # Подождем 2 секунды и проверим, что элемент истек
-#     time.sleep(2)
-#     response = client.get("/cache/key4")
-#     assert response.status_code == 404
 
-# def test_cache_stats():
-#     # Добавим элементы в кэш
-#     client.put("/cache/key1", json={"value": "value1", "ttl": 3600})
-#     client.put("/cache/key2", json={"value": "value2", "ttl": 3600})
+@pytest.mark.usefixtures("clear_cache")
+def test_cache_ttl():
+    # Add an element with TTL = 1 second
+    response = client.put("/cache/key4", json={"value": "value4", "ttl": 1})
+    assert response.status_code == 201
     
-#     response = client.get("/cache/stats/")
-#     assert response.status_code == 200
-#     stats = response.json()
-#     assert stats["size"] == 2
-#     assert stats["capacity"] == 5  # default capacity
-#     assert "key1" in stats["items"]
-#     assert "key2" in stats["items"]
+    # Check that the element exists
+    response = client.get("/cache/key4")
+    assert response.status_code == 200
+    assert response.json() == {"value": "value4"}
+    
+    # Wait for 2 seconds and check that the element has expired
+    time.sleep(2)
+    response = client.get("/cache/key4")
+    assert response.status_code == 404
+
+
+@pytest.mark.usefixtures("clear_cache")
+def test_cache_stats():
+    # Add elements to the cache
+    client.put("/cache/key1", json={"value": "value1", "ttl": 3600})
+    client.put("/cache/key2", json={"value": "value2", "ttl": 3600})
+    
+    response = client.get("/cache/stats/")
+    assert response.status_code == 200
+    stats = response.json()
+
+    assert stats["size"] == 2
+    assert stats["capacity"] == 5
+    assert "key1" in stats["items"]
+    assert "key2" in stats["items"]
