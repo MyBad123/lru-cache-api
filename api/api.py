@@ -1,45 +1,80 @@
-import aioredis
-from fastapi import APIRouter, HTTPException, Depends, status
-from fastapi import FastAPI
+from fastapi import status
 
 
-from fastapi import APIRouter, Depends, HTTPException
-from aioredis import Redis
-from fastapi import Request
+from fastapi import APIRouter, HTTPException, Response
 from app.cache import lry_cache
-from app.models import StateItem
+from app.models import StateItem, ChangeKey, GetKeyModel
 
 router = APIRouter()
 
 
-def get_redis(request: Request) -> Redis:
-    return request.app.state.redis
-
-
 @router.get("/cache/{key}")
-async def get_item_route(key: str, redis: Redis = Depends(get_redis)):
-    """Получение элемента по ID"""
-    
-    # Получаем значение по ключу
-    value = await lry_cache.get(redis, key)
+async def get_item_route(key: str) -> GetKeyModel:
+    """
+    Retrieve a cached item by its key.
+
+    Args:
+        key (str): The key of the item to fetch from the cache.
+
+    Raises:
+        HTTPException: If the cache key is not found or has expired.
+
+    Returns:
+        GetKeyModel: The cache value associated with the key.
+    """
+    value = await lry_cache.get(key)
     if value is None:
-        raise HTTPException(status_code=404, detail="Cache not found or TTL expired")
-    return {"key": key, "value": value}
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Cache key not found or TTL expired"
+        )
+    return GetKeyModel(value=value)
 
 
-@router.delete("/cache/{key}")
-async def delete_item(key: str, redis: Redis = Depends(get_redis)):
-    value = await lry_cache.get(redis, key)
-    if value is None:
-        raise HTTPException(status_code=404, detail="Cache not found or TTL expired")
-    
-    await lry_cache.delete(redis, key)
-    
-    return status.HTTP_204_NO_CONTENT
+@router.put("/cache/{key}")
+async def set_item_route(key: str, value: ChangeKey):
+    """
+    Set or update a cache item.
+
+    Args:
+        key (str): The key of the item to cache.
+        value (ChangeKeyRequest): The value and TTL for the cache entry.
+
+    Returns:
+        Response: The status of the cache update.
+    """
+    is_created = await lry_cache.set(key, value.value, value.ttl)
+    return Response(
+        status_code=status.HTTP_201_CREATED if is_created else status.HTTP_200_OK
+    )
+
+
+@router.delete("/cache/{key}", status_code=204)
+async def delete_item(key: str) -> None:
+    """
+    Delete a cached item by its key.
+
+    Args:
+        key (str): The key of the item to delete from the cache.
+
+    Raises:
+        HTTPException: If the cache key is not found.
+    """
+    deleted = await lry_cache.delete(key)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Cache key '{key}' not found."
+        )
 
 
 @router.get("/cache/stats/")
-async def get_cache_stats(redis: Redis = Depends(get_redis)) -> StateItem:
-    data = await lry_cache.get_keys_sorted_by_ttl(redis)
-    return StateItem(**data)
+async def get_cache_stats() -> StateItem:
+    """
+    Retrieve the current statistics of the cache.
 
+    Returns:
+        StateItem: The cache statistics.
+    """
+    data = await lry_cache.get_stats()
+    return StateItem(**data)
