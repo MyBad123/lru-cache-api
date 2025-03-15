@@ -1,11 +1,20 @@
 import asyncio
 import time
 from collections import OrderedDict
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 
 class LRUCache:
     def __init__(self, capacity: int = 5):
+        """
+        Initialize the LRU Cache.
+
+        :param capacity: Maximum capacity of the cache.
+        :raises ValueError: If the capacity is less than or equal to 0.
+        """
+        if capacity <= 0:
+            raise ValueError("Capacity must be greater than 0")
+
         self.capacity = capacity
         self.cache = OrderedDict()
         self.lock = asyncio.Lock()
@@ -13,30 +22,33 @@ class LRUCache:
         self.ttls = {}
 
     def _is_expired(self, key: str) -> bool:
-        if key not in self.timestamps:
-            return True
-        
-        ttl = self.ttls.get(key, 3360)
-        
+        """Check if the cache item has expired."""
+
+        ttl = self.ttls.get(key)
         if ttl is None:
-            ttl = 3360
+            return False
         
+        # Return True if the TTL has expired for the item
         return time.time() - self.timestamps[key] > ttl
 
-
     async def get(self, key: str) -> Optional[Any]:
+        """Retrieve the value for the key from the cache, if it's not expired."""
+
         async with self.lock:
             if key not in self.cache or self._is_expired(key):
                 self.cache.pop(key, None)
                 self.timestamps.pop(key, None)
                 self.ttls.pop(key, None)
                 return None
-            
+
+            # Move the key to the end (it was recently accessed) and update the timestamp
             self.cache.move_to_end(key)
             self.timestamps[key] = time.time()
             return self.cache[key]
 
     async def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
+        """Set a value for a key in the cache, with an optional TTL."""
+
         async with self.lock:
             is_create = key not in self.cache
             
@@ -51,6 +63,8 @@ class LRUCache:
             return is_create
 
     async def delete(self, key: str) -> bool:
+        """Delete an item from the cache by its key."""
+
         async with self.lock:
             if key in self.cache:
                 self.cache.pop(key)
@@ -60,6 +74,8 @@ class LRUCache:
             return False
 
     async def get_stats(self) -> Dict[str, int]:
+        """Get statistics about the cache."""
+
         async with self.lock:
             return {
                 "size": len(self.cache),

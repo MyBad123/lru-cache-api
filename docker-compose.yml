@@ -1,14 +1,8 @@
 services:
-  redis:
-    image: redis:6.2
-    container_name: redis
+  fastapi-app:
+    build: .
     ports:
-      - "6379:6379"
-    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
-    networks:
-      - redis_network
+      - "${EXTERNAL_PORT}:${INTERNAL_PORT}"
+    environment:
+      - PYTHONUNBUFFERED=1
     restart: always
-
-networks:
-  redis_network:
-    driver: bridge

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
+
 from api.api import router as api_router
 from app.middleware import RequestLoggingMiddleware
-
 
 app = FastAPI()
 

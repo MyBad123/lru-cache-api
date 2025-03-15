@@ -1,9 +1,8 @@
-from fastapi import status
+from fastapi import APIRouter, HTTPException, Response, status
 
-
-from fastapi import APIRouter, HTTPException, Response
 from app.cache import lry_cache
-from app.models import StateItem, ChangeKey, GetKeyModel
+from app.models import ChangeKey, GetKeyModel, StateItem
+
 
 router = APIRouter()
 
@@ -50,7 +49,7 @@ async def set_item_route(key: str, value: ChangeKey):
 
 
 @router.delete("/cache/{key}", status_code=204)
-async def delete_item(key: str) -> None:
+async def delete_item(key: str):
     """
     Delete a cached item by its key.
 
