@@ -7,6 +7,7 @@ from starlette.requests import Request
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         start_time = time.time()
