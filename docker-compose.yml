@@ -1,9 +1,10 @@
 services:
   fastapi-app:
     build: .
+    restart: always
     ports:
       - "${EXTERNAL_PORT}:8000"
     environment:
       - PYTHONUNBUFFERED=1
       - CACHE_CAPACITY=${CACHE_CAPACITY}
-    restart: always
+    command: /bin/sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000"
