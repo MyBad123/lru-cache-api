@@ -3,9 +3,11 @@ import time
 from collections import OrderedDict
 from typing import Any, Dict, Optional
 
+from .config import app_config
+
 
 class LRUCache:
-    def __init__(self, capacity: int = 5):
+    def __init__(self, capacity: int):
         """
         Initialize the LRU Cache.
 
@@ -84,4 +86,4 @@ class LRUCache:
             }
 
         
-lry_cache = LRUCache()
+lry_cache = LRUCache(capacity=app_config.cache_size)
