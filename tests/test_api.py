@@ -106,6 +106,8 @@ def clear_cache():
     client.delete("/cache/key2")
     client.delete("/cache/key3")
     client.delete("/cache/key4")
+    client.delete("/cache/key5")
+    client.delete("/cache/key6")
 
 
 @pytest.mark.usefixtures("clear_cache")
@@ -163,10 +165,13 @@ def test_cache_eviction():
     client.put("/cache/key1", json={"value": "value1", "ttl": 3600})
     client.put("/cache/key2", json={"value": "value2", "ttl": 3600})
     client.put("/cache/key3", json={"value": "value3", "ttl": 3600})
+    client.put("/cache/key4", json={"value": "value3", "ttl": 3600})
+    client.put("/cache/key5", json={"value": "value3", "ttl": 3600})
+    client.put("/cache/key6", json={"value": "value3", "ttl": 3600})
     
     # Check that the first element was evicted
     response = client.get("/cache/key1")
-    assert response.status_code == 200
+    assert response.status_code == 404
     response = client.get("/cache/key2")
     assert response.status_code == 200
     assert response.json() == {"value": "value2"}

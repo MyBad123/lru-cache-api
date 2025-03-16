@@ -4,10 +4,10 @@ from app.cache import lry_cache
 from app.models import ChangeKey, GetKeyModel, StateItem
 
 
-router = APIRouter()
+router = APIRouter(prefix='/cache')
 
 
-@router.get("/cache/{key}")
+@router.get("/{key}")
 async def get_item_route(key: str) -> GetKeyModel:
     """
     Retrieve a cached item by its key.
@@ -30,7 +30,7 @@ async def get_item_route(key: str) -> GetKeyModel:
     return GetKeyModel(value=value)
 
 
-@router.put("/cache/{key}")
+@router.put("/{key}")
 async def set_item_route(key: str, value: ChangeKey):
     """
     Set or update a cache item.
@@ -48,7 +48,7 @@ async def set_item_route(key: str, value: ChangeKey):
     )
 
 
-@router.delete("/cache/{key}", status_code=204)
+@router.delete("/{key}", status_code=204)
 async def delete_item(key: str):
     """
     Delete a cached item by its key.
@@ -67,7 +67,7 @@ async def delete_item(key: str):
         )
 
 
-@router.get("/cache/stats/")
+@router.get("/stats/")
 async def get_cache_stats() -> StateItem:
     """
     Retrieve the current statistics of the cache.
