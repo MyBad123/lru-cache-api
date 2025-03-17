@@ -7,6 +7,18 @@ from app.models import ChangeKey, GetKeyModel, StateItem
 router = APIRouter(prefix='/cache')
 
 
+@router.get("/stats")
+async def get_cache_stats() -> StateItem:
+    """
+    Retrieve the current statistics of the cache.
+
+    Returns:
+        StateItem: The cache statistics.
+    """
+    data = await lry_cache.get_stats()
+    return StateItem(**data)
+
+
 @router.get("/{key}")
 async def get_item_route(key: str) -> GetKeyModel:
     """
@@ -65,15 +77,3 @@ async def delete_item(key: str):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Cache key '{key}' not found."
         )
-
-
-@router.get("/stats/")
-async def get_cache_stats() -> StateItem:
-    """
-    Retrieve the current statistics of the cache.
-
-    Returns:
-        StateItem: The cache statistics.
-    """
-    data = await lry_cache.get_stats()
-    return StateItem(**data)
